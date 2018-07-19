@@ -121,7 +121,7 @@
     <value>Here’s an answer I think might help:</value>
   </data>
   <data name="AskQuestion" xml:space="preserve">
-    <value>Sure thing, how can I help? You can say things like “What documentation do I need to make an insurance claim?” or “How can I get ahold of FEMA for assistance?”</value>
+    <value>How can I help you today?</value>
   </data>
   <data name="GetAnswers" xml:space="preserve">
     <value>Get Answers</value>
