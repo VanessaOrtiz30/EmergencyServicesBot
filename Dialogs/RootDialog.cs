@@ -78,39 +78,38 @@ namespace EmergencyServicesBot.Dialogs
 
         private async Task DetectAndSaveUserLanguageAsync(IDialogContext context, string userText)
         {
-            if (!context.UserData.TryGetValue(@"userLanguage", out string userLanguage))
+            
+            using (var langDetectClient = new HttpClient())
             {
-                using (var langDetectClient = new HttpClient())
+                langDetectClient.DefaultRequestHeaders.Add(@"Ocp-Apim-Subscription-Key", ConfigurationManager.AppSettings[@"TranslatorApiKey"]);
+
+                try
                 {
-                    langDetectClient.DefaultRequestHeaders.Add(@"Ocp-Apim-Subscription-Key", ConfigurationManager.AppSettings[@"TranslatorApiKey"]);
+                    var detectedLanguageXmlResponse = XDocument.Parse(await langDetectClient.GetStringAsync($@"{ConfigurationManager.AppSettings[@"TranslatorEndpoint"]}/Detect?text={HttpUtility.UrlEncode(userText)}"));
 
-                    try
+                    context.UserData.SetValue(@"userLanguage", detectedLanguageXmlResponse.Root.Value);
+
+                    if (detectedLanguageXmlResponse.Root.Value == "en")
                     {
-                        var detectedLanguageXmlResponse = XDocument.Parse(await langDetectClient.GetStringAsync($@"{ConfigurationManager.AppSettings[@"TranslatorEndpoint"]}/Detect?text={HttpUtility.UrlEncode(userText)}"));
-
-                        context.UserData.SetValue(@"userLanguage", detectedLanguageXmlResponse.Root.Value);
-
-                        if (detectedLanguageXmlResponse.Root.Value == "en")
-                        {
-                            context.UserData.SetValue(@"cultureInfo", ciEnglish);
-                        }
-                        else if (detectedLanguageXmlResponse.Root.Value == "es")
-                        {
-                            context.UserData.SetValue(@"cultureInfo", ciSpanish);
-                        }
-                        else if (detectedLanguageXmlResponse.Root.Value == "zh-CN")
-                        {
-                            context.UserData.SetValue(@"cultureInfo", ciChinese);
-                        }
-                        else { context.UserData.SetValue(@"cultureInfo", ciEnglish); }
-
-
+                        context.UserData.SetValue(@"cultureInfo", ciEnglish);
                     }
-                    catch (Exception ex)
+                    else if (detectedLanguageXmlResponse.Root.Value == "es")
                     {
-                        System.Diagnostics.Trace.TraceError($@"Error detecting language from inital user chat: {ex.ToString()}");
+                        context.UserData.SetValue(@"cultureInfo", ciSpanish);
                     }
+                    else if (detectedLanguageXmlResponse.Root.Value == "zh-CN")
+                    {
+                        context.UserData.SetValue(@"cultureInfo", ciChinese);
+                    }
+                    else { context.UserData.SetValue(@"cultureInfo", ciEnglish); }
+
+
                 }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Trace.TraceError($@"Error detecting language from inital user chat: {ex.ToString()}");
+                }
+            }
 
                 if (context.UserData.GetValue<String>("userLanguage") == "en")
                 {
@@ -125,7 +124,7 @@ namespace EmergencyServicesBot.Dialogs
                     context.UserData.SetValue(@"cultureInfo", ciChinese);
                 }
                 else { context.UserData.SetValue(@"cultureInfo", ciEnglish); }
-            }
+            
         }
 
         private async Task UserChoiceMade(IDialogContext context, IAwaitable<string> result)
